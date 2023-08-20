@@ -39,8 +39,8 @@ class Team(models.Model):
 class Shot(models.Model):
     """Model containing information of an attack."""
     game = models.ForeignKey(Game, related_name='shots')
-    attacking_team = models.ForeignKey(Team, related_name='shots')
-    defending_team = models.ForeignKey(Team, related_name='shots')
+    attacking_team = models.ForeignKey(Team, related_name='attacking_shots')
+    defending_team = models.ForeignKey(Team, related_name='defending_shots')
 
     x = models.IntegerField()
     y = models.IntegerField()
