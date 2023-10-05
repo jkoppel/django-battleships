@@ -165,12 +165,7 @@ class AttackView(View):
             ship_tiles.update(set(ship.get_tiles()))
         other_team_hit = (int(target_x), int(target_y)) in ship_tiles
 
-        # Check for winner
-        alive_teams = game.teams.filter(alive=True)
-        if len(alive_teams) == 1:
-            alive_teams[0].winner = True
-            alive_teams[0].save()
-         if other_team_hit:
+        if other_team_hit:
             messages.success(request, 'Hit!')
         else:
             messages.warning(request, 'Miss!')
@@ -203,14 +198,88 @@ class AttackView(View):
             ship_tiles.update(set(ship.get_tiles()))
         other_team_hit = (int(target_x), int(target_y)) in ship_tiles
 
-        # Check for winner
-        alive_teams = game.teams.filter(alive=True)
-        if len(alive_teams) == 1:
-            alive_teams[0].winner = True
-            alive_teams[0].save()
-         if other_team_hit:
+        if other_team_hit:
             messages.success(request, 'Hit!')
         else:
             messages.warning(request, 'Miss!')
 
 
+
+class AttackView(View):
+
+    def post(self, request, game_id, *args, **kwargs):
+        if request.user.is_authenticated():
+            try:
+                game = Game.objects.get(pk=game_id)
+            except Game.DoesNotExist:
+                raise Http404("Game does not exist.")
+
+            player = Player.objects.get(user=request.user)
+
+            # Verify the player is involved in this game
+            teams = game.teams.all()
+            player_team = None
+            for team in teams:
+                if team.player == player:
+                    player_team = team
+
+            # Verify it is the player's turn to attack
+            is_next = is_team_next(player_team, game)
+            if not is_next:
+                messages.error(request, 'It\'s not your turn!')
+                return HttpResponseRedirect(reverse('game', args=[game_id]))
+
+            other_teams = []
+            for team in teams:
+                if team is not player_team and team.alive:
+                    other_teams.append(team)
+
+            attack_form = AttackForm(request.POST, other_teams=other_teams)
+
+                target_x = attack_form.cleaned_data['target_x']
+                target_y = attack_form.cleaned_data['target_y']
+                target_team = attack_form.cleaned_data['target_team']
+
+                other_team = Team.objects.get(pk=target_team)
+
+                # Verify shot hasn't already been attempted
+                past_shots = Shot.objects.filter(
+                    game=game,
+                    attacking_team=player_team,
+                    defending_team=other_team,
+                    x=target_x,
+                    y=target_y
+                )
+
+                if len(past_shots) > 0:
+                    messages.error(request, 'You\'ve already shot there!')
+                    return HttpResponseRedirect(
+                        reverse('game', args=[game_id])
+                    )
+
+                shot = Shot(
+                    game=game,
+                    attacking_team=player_team,
+                    defending_team=other_team,
+                    x=target_x,
+                    y=target_y
+                )
+                shot.save()
+
+                player_team.last_turn = game.turn
+                player_team.save()
+
+                game.turn = game.turn + 1
+                game.save()
+
+                # Check for hit
+                ship_tiles = set()
+                for ship in other_team.ships.all():
+                    ship_tiles.update(set(ship.get_tiles()))
+                other_team_hit = (int(target_x), int(target_y)) in ship_tiles
+
+                if other_team_hit:
+                    messages.success(request, 'Hit!')
+                else:
+                    messages.warning(request, 'Miss!')
+                return HttpResponseRedirect(reverse('game', args=[game_id]))
