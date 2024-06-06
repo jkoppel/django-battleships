@@ -4,16 +4,17 @@ Hello and welcome to try out UpToSpeed.
 A tool that helps you onboard and learn codebases up to 100% faster. 
 
 # Getting started
+
 ### 0. Accept "Do you want to install the recommended 'UpToSpeed' extension..."
-*(if you accidentally closed, refresh window or manuall install the extension 'downfromslow')*
-### 1. Opening the Plugin
-In VScode press
+*(if you accidentally closed, refresh window or manually install the extension 'downfromslow')*
+
+### 1. Open the Plugin
 Mac: `cmd+shift+p` 
 Other: `ctrl+shift+p` 
 
 then type "Start UpToSpeed" and press enter.
 
-### 2. Taking your first tour.
+### 2. Take your first tour
 Now on the right you should see the UpToSpeed plugin.
 Click one of the buttons with a tour name on it to start a tour. 
 
