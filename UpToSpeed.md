@@ -26,5 +26,8 @@ Hotkeys for back and forth.
 Next step: `cmd+shift+l` / `ctrl+shift+l` (space instead of l also works)
 Prev step: `cmd+shift+h` / `ctrl+shift+h`
 
+### Hint
+
+UpToSpeed looks better in Dark Mode. If you're in Light Mode, press `Cmd+shift+p` or `Ctl+shift+p` and run the the "Toggle Between Light/Dark Themes" command.
 
 
