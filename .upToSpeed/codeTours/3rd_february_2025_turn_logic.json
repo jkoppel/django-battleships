@@ -1,0 +1,123 @@
+{
+  "title": "3rd Februrary 2025 | Turn Logic",
+  "id": "xKIygJu6fHgJVf0xvuwahPaVwTmesC8TF7VSEc6JZgI=",
+  "position": 5,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "**Turn logic** is a fundamental aspect of the game mechanics, ensuring that players take actions in a structured and fair sequence. The following steps will explore how **turn logic** is implemented, tracked, and enforced within the codebase, providing insights into its role in gameplay and system integrity.",
+      "title": "",
+      "id": "3648"
+    },
+    {
+      "type": "highlight",
+      "description": "The **Game** model includes a `turn` field that tracks the current `turn` number in the game, which determines the order of play.",
+      "file": "games/models.py",
+      "highlight": [
+        {
+          "start": 9,
+          "end": 19
+        }
+      ],
+      "title": "",
+      "id": "3649"
+    },
+    {
+      "type": "highlight",
+      "description": "The `Team` model includes a `last_turn` field that records the last turn a team played. This helps in determining the next team to play.",
+      "file": "games/models.py",
+      "highlight": [
+        {
+          "start": 22,
+          "end": 36
+        }
+      ],
+      "title": "",
+      "id": "3650"
+    },
+    {
+      "type": "highlight",
+      "description": "The `turn` field in the `Game` model is updated here to reflect the progression of the game after a player's action. This ensures the turn order is maintained.",
+      "file": "games/views.py",
+      "highlight": [
+        {
+          "start": 220,
+          "end": 224
+        }
+      ],
+      "title": "",
+      "id": "3651"
+    },
+    {
+      "type": "highlight",
+      "description": "The `last_turn` field in the `Team` model is updated here to record when the team played their turn, which helps determine the next team in the turn sequence.",
+      "file": "games/views.py",
+      "highlight": [
+        {
+          "start": 220,
+          "end": 221
+        }
+      ],
+      "title": "",
+      "id": "3652"
+    },
+    {
+      "type": "highlight",
+      "description": "The `is_team_next` function checks if a given team is the next to play based on the game's turn order and the **`last_turn`** field of each team.",
+      "file": "games/util.py",
+      "highlight": [
+        {
+          "start": 16,
+          "end": 19
+        }
+      ],
+      "title": "",
+      "id": "3653"
+    },
+    {
+      "type": "highlight",
+      "description": "The **`AttackView`** class uses the **`is_team_next`** function to validate if the current player can perform an attack, ensuring the turn order is respected.",
+      "file": "games/views.py",
+      "highlight": [
+        {
+          "start": 157,
+          "end": 181
+        }
+      ],
+      "title": "",
+      "id": "3654"
+    },
+    {
+      "type": "highlight",
+      "description": "Test cases for the **`is_team_next`** function validate its correctness in determining the next team to play under various scenarios.",
+      "file": "games/tests/test_util.py",
+      "highlight": [
+        {
+          "start": 48,
+          "end": 84
+        }
+      ],
+      "title": "",
+      "id": "3655"
+    },
+    {
+      "type": "highlight",
+      "description": "Test cases for the **`AttackView`** class ensure that the turn logic is enforced during gameplay, preventing actions out of turn.",
+      "file": "games/tests/test_views.py",
+      "highlight": [
+        {
+          "start": 260,
+          "end": 285
+        }
+      ],
+      "title": "",
+      "id": "3656"
+    },
+    {
+      "type": "textOnly",
+      "description": "The walkthrough of the turn logic implementation has shown how the system manages gameplay progression. The `Game` and `Team` models track the turn state and the last turn played, respectively. The views update these states and validate turn progression, while utility functions like `is_team_next` enforce the rules of turn order. Finally, the tests verify the behavior of these components under various scenarios. This interconnected system maintains the turn logic, providing the foundation for gameplay.",
+      "title": "",
+      "id": "3657"
+    }
+  ]
+}
