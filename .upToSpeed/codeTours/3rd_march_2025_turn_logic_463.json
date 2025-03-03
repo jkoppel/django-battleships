@@ -1,0 +1,260 @@
+{
+  "title": "3rd_march_2025_turn_logic",
+  "id": "oHllUl3C1MRXuRaHw/Zo2yvC8FXHei2AErD7yDBXc4U=",
+  "originalId": 463,
+  "position": 26,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "Welcome to this walkthrough of the turn logic in the `django-battleships` game. We'll explore how the game manages player turns, from initialization to validation and advancement. This is a key aspect of the game that ensures players take turns in the correct order and can only make moves when it's their turn.",
+      "title": "",
+      "id": "4389"
+    },
+    {
+      "type": "textOnly",
+      "description": "Let's start by understanding the **core data models** that support **turn management** in the game. The **turn logic** is built on a few key fields in the **database models** that track whose turn it is and when each player last moved. These fields form the foundation of the **turn system** and determine which player can make a move at any given time.",
+      "title": "",
+      "id": "4390"
+    },
+    {
+      "type": "revealFiles",
+      "files": [
+        "games/models.py"
+      ],
+      "description": "Let's start by examining the core models that store turn information. The **Game** model has a `turn` field that keeps track of the overall game turn counter. The **Team** model has a `last_turn` field that records when each team last took their turn. These two fields work together to determine whose turn it is next.",
+      "title": "",
+      "id": "4391"
+    },
+    {
+      "type": "highlight",
+      "description": "The Game model has a `turn` field that starts at 0 and increments after each player's move. This serves as a global counter for the game.",
+      "file": "games/models.py",
+      "highlight": [
+        {
+          "start": 9,
+          "end": 12
+        }
+      ],
+      "title": "",
+      "id": "4392"
+    },
+    {
+      "type": "highlight",
+      "description": "The Team model connects a Player to a Game and tracks when they last took a turn with the `last_turn` field. It also has `winner` and `alive` flags that affect turn eligibility - only alive teams can take turns.",
+      "file": "games/models.py",
+      "highlight": [
+        {
+          "start": 22,
+          "end": 29
+        }
+      ],
+      "title": "",
+      "id": "4393"
+    },
+    {
+      "type": "textOnly",
+      "description": "Now that we understand the **data models** that store **turn information**, let's examine the **core utility functions** and **logic** that determine whose turn it is. The game uses an **algorithm** to manage turns, ensuring that players move in the correct order and can only act when it's their turn.",
+      "title": "",
+      "id": "4394"
+    },
+    {
+      "type": "highlight",
+      "description": "The `is_team_next` function is the core of turn logic. It determines if it's a team's turn by finding the team with the smallest 'last_turn' value among all alive teams. This elegantly handles player elimination - when a team is no longer alive, they're excluded from turn consideration.",
+      "file": "games/util.py",
+      "highlight": [
+        {
+          "start": 16,
+          "end": 19
+        }
+      ],
+      "title": "",
+      "id": "4395"
+    },
+    {
+      "type": "highlight",
+      "description": "The test setup creates a game with three teams, each with different `last_turn` values. This helps us understand how turn order is determined based on these values.",
+      "file": "games/tests/test_util.py",
+      "highlight": [
+        {
+          "start": 48,
+          "end": 71
+        }
+      ],
+      "title": "",
+      "id": "4396"
+    },
+    {
+      "type": "highlight",
+      "description": "These tests verify that `team1` (with `last_turn`=1) is next because it has the smallest `last_turn` value, while `team2` (`last_turn`=2) and `team3` (`last_turn`=3) are not next.",
+      "file": "games/tests/test_util.py",
+      "highlight": [
+        {
+          "start": 72,
+          "end": 77
+        }
+      ],
+      "title": "",
+      "id": "4397"
+    },
+    {
+      "type": "highlight",
+      "description": "This test shows what happens when a team is eliminated (**not alive**): the next team with the smallest `last_turn` value becomes the next to play. When `team1` is marked as **not alive**, `team2` becomes the next team to play.",
+      "file": "games/tests/test_util.py",
+      "highlight": [
+        {
+          "start": 79,
+          "end": 83
+        }
+      ],
+      "title": "",
+      "id": "4398"
+    },
+    {
+      "type": "textOnly",
+      "description": "Now that we've seen how the turn logic is determined through the `is_team_next` function and how it handles player elimination, let's explore how this turn logic is actually implemented in the game's user interface and gameplay flow. We'll examine how the **turn information** is presented to players, how the system validates that only the correct player can make a move, and how the **turn state** advances after a valid move.",
+      "title": "",
+      "id": "4399"
+    },
+    {
+      "type": "highlight",
+      "description": "When creating a new game, the turn logic is initialized. The game creator's team gets `last_turn=-2` and opponent teams get `last_turn=-1`. This ensures the game creator goes first, as they have the smallest `last_turn` value.",
+      "file": "games/views.py",
+      "highlight": [
+        {
+          "start": 123,
+          "end": 136
+        }
+      ],
+      "title": "",
+      "id": "4400"
+    },
+    {
+      "type": "highlight",
+      "description": "The `TeamPresenter` includes an `is_next` field that will be used in the UI to indicate whose turn it is.",
+      "file": "games/presentation.py",
+      "highlight": [
+        {
+          "start": 25,
+          "end": 28
+        }
+      ],
+      "title": "",
+      "id": "4401"
+    },
+    {
+      "type": "highlight",
+      "description": "When creating a `TeamPresenter`, the `is_next` field is populated by calling the `is_team_next` function. This information will be used in the game template to show or hide the attack form.",
+      "file": "games/presentation.py",
+      "highlight": [
+        {
+          "start": 47,
+          "end": 55
+        }
+      ],
+      "title": "",
+      "id": "4402"
+    },
+    {
+      "type": "highlight",
+      "description": "In the GameView, the `is_team_next` function is used to determine if it's the current player's turn. This information is passed to the template as `is_player_next`.",
+      "file": "games/views.py",
+      "highlight": [
+        {
+          "start": 50,
+          "end": 63
+        }
+      ],
+      "title": "",
+      "id": "4403"
+    },
+    {
+      "type": "highlight",
+      "description": "The game template uses the `is_player_next` flag to conditionally display the attack form. If it's not the player's turn, they won't see the form and can't make a move.",
+      "file": "templates/games/game.html",
+      "highlight": [
+        {
+          "start": 49,
+          "end": 52
+        }
+      ],
+      "title": "",
+      "id": "4404"
+    },
+    {
+      "type": "textOnly",
+      "description": "To summarize the UI implementation of the turn logic, the system uses a combination of server-side validation and conditional rendering to enforce the turn rules. The game template uses the `is_player_next` flag to control whether a player can make a move, creating a user experience that guides players through the turn sequence.",
+      "title": "",
+      "id": "4405"
+    },
+    {
+      "type": "highlight",
+      "description": "The game template enforces turn order through conditional display. When it's not a player's turn, the **attack form** is completely hidden from view, making it impossible for them to submit an attack. This UI-level restriction works alongside the server-side validation we saw earlier to create a turn system with multiple layers of enforcement.",
+      "file": "templates/games/game.html",
+      "highlight": [
+        {
+          "start": 49,
+          "end": 52
+        }
+      ],
+      "title": "",
+      "id": "4406"
+    },
+    {
+      "type": "textOnly",
+      "description": "This approach to turn management has several **advantages**. First, it's **intuitive** for players - they can only see the attack controls when it's their turn. Second, it provides both **client-side (UI)** and **server-side** protection against out-of-turn moves. Finally, it gracefully handles **player elimination** by automatically advancing to the next alive player when someone is defeated.",
+      "title": "",
+      "id": "4407"
+    },
+    {
+      "type": "highlight",
+      "description": "In the AttackView, before processing an attack, the code verifies it's the player's turn using `is_team_next`. If not, an error message is shown and the player is redirected back to the game page.",
+      "file": "games/views.py",
+      "highlight": [
+        {
+          "start": 177,
+          "end": 181
+        }
+      ],
+      "title": "",
+      "id": "4408"
+    },
+    {
+      "type": "highlight",
+      "description": "After a successful attack, the player's `last_turn` is updated to the current game turn, and the game turn is incremented. This ensures the player can't take another turn until all other alive players have moved.",
+      "file": "games/views.py",
+      "highlight": [
+        {
+          "start": 219,
+          "end": 224
+        }
+      ],
+      "title": "",
+      "id": "4409"
+    },
+    {
+      "type": "highlight",
+      "description": "The turn logic also handles **player elimination**. When all of a team's **ships** are hit, they're marked as not alive. When only one team remains alive, they're marked as the **winner**.",
+      "file": "games/views.py",
+      "highlight": [
+        {
+          "start": 241,
+          "end": 251
+        }
+      ],
+      "title": "",
+      "id": "4410"
+    },
+    {
+      "type": "textOnly",
+      "description": "Now let's look at how the **turn logic** is tested in the codebase. The developers have created **tests** to verify the **turn system** works correctly in different scenarios, including normal turn progression, player elimination, and game completion. These tests check that the core turn mechanics function as expected and handle edge cases properly.",
+      "title": "",
+      "id": "4411"
+    },
+    {
+      "type": "textOnly",
+      "description": "That completes our walkthrough of the turn logic in `django-battleships`. The system uses an approach where each team tracks when they last took a turn, and the team with the smallest `last_turn` value among alive teams gets to go next. This handles both the normal turn rotation and special cases like player elimination. The UI enforces this by only showing the attack form to the player whose turn it is.",
+      "title": "",
+      "id": "4412"
+    }
+  ]
+}
