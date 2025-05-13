@@ -1,8 +1,7 @@
 {
   "title": "3rd_march_2025_turn_logic",
   "id": "oHllUl3C1MRXuRaHw/Zo2yvC8FXHei2AErD7yDBXc4U=",
-  "originalId": 463,
-  "position": 26,
+  "position": 4,
   "steps": [
     {
       "type": "textOnly",
@@ -18,9 +17,7 @@
     },
     {
       "type": "revealFiles",
-      "files": [
-        "games/models.py"
-      ],
+      "files": ["games/models.py"],
       "description": "Let's start by examining the core models that store turn information. The **Game** model has a `turn` field that keeps track of the overall game turn counter. The **Team** model has a `last_turn` field that records when each team last took their turn. These two fields work together to determine whose turn it is next.",
       "title": "",
       "id": "4391"

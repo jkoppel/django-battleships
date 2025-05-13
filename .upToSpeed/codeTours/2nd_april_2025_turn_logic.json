@@ -1,0 +1,131 @@
+{
+  "title": "2nd of April | Turn Logic",
+  "id": "django-battleships-turn-logic",
+  "position": 5,
+  "steps": [
+    {
+      "type": "textOnly",
+      "title": "Turn Logic Overview",
+      "description": "The turn logic in this codebase revolves around two key fields: `turn` in the Game model and `last_turn` in the Team model.",
+      "id": "turn-logic-overview"
+    },
+    {
+      "type": "highlight",
+      "file": "games/models.py",
+      "highlight": [
+        {
+          "start": 9,
+          "end": 11
+        }
+      ],
+      "title": "Game Model: Tracking Overall Turn",
+      "description": "The `Game` model tracks the overall progress of the game using an integer `turn` field, starting from 0.",
+      "id": "game-model-turn-field"
+    },
+    {
+      "type": "highlight",
+      "file": "games/models.py",
+      "highlight": [
+        {
+          "start": 22,
+          "end": 26
+        }
+      ],
+      "title": "Team Model: Tracking Last Action",
+      "description": "The `Team` model, linking a Player to a Game, tracks when a team last acted using the `last_turn` field. This also starts at 0 (though initialized differently in `CreateGameView`, see later).",
+      "id": "team-model-last-turn-field"
+    },
+    {
+      "type": "highlight",
+      "file": "games/util.py",
+      "highlight": [
+        {
+          "start": 16,
+          "end": 19
+        }
+      ],
+      "title": "Utility: Determining the Next Player",
+      "description": "Determining the next player involves finding the 'alive' team with the minimum `last_turn` value relative to the current `Game.turn`. The `is_team_next` utility function implements this logic. It filters the game's teams to find those still alive and returns `True` if the provided team is the one with the minimum `last_turn` among them.",
+      "id": "is-team-next-utility"
+    },
+    {
+      "type": "highlight",
+      "file": "games/views.py",
+      "highlight": [
+        {
+          "start": 50,
+          "end": 50
+        }
+      ],
+      "title": "Usage: `is_team_next` in GameView (GET)",
+      "description": "The `is_team_next` function is used in the views to control game flow and validate actions. In the `GameView` (GET request), `is_team_next` is called to determine if the current player viewing the game is the one whose turn it is. This result (`is_player_next`) is passed to the template, likely to enable/disable the attack controls.",
+      "id": "gameview-get-usage"
+    },
+    {
+      "type": "highlight",
+      "file": "games/views.py",
+      "highlight": [
+        {
+          "start": 177,
+          "end": 181
+        }
+      ],
+      "title": "Usage: `is_team_next` in AttackView (POST Validation)",
+      "description": "In the `AttackView` (POST request), `is_team_next` acts as a crucial validation step. Before processing an attack, it checks if the requesting player's team is indeed the next one to move. If not, an error message is shown, and the user is redirected.",
+      "id": "attackview-post-validation"
+    },
+    {
+      "type": "highlight",
+      "file": "games/views.py",
+      "highlight": [
+        {
+          "start": 220,
+          "end": 224
+        }
+      ],
+      "title": "Turn Progression: Updating Fields After Attack",
+      "description": "When a valid attack occurs, the turn progresses by updating the relevant `last_turn` and `turn` fields. Inside `AttackView`, after a valid shot is saved, the attacking `player_team`'s `last_turn` is updated to match the current `game.turn` (line 220). Immediately after, the global `game.turn` is incremented by 1 (line 223). Both models are saved. This sequence ensures that the player who just moved now has the highest `last_turn` value (equal to the previous game turn), and the turn effectively passes to the player who now has the minimum `last_turn`.",
+      "id": "attack-update-turns"
+    },
+    {
+      "type": "highlight",
+      "file": "games/views.py",
+      "highlight": [
+        {
+          "start": 123,
+          "end": 125
+        },
+        {
+          "start": 126,
+          "end": 136
+        }
+      ],
+      "title": "Initialization: Setting Turns at Game Creation",
+      "description": "During game creation in `CreateGameView`, initial `last_turn` values are set. The creating user's team gets `last_turn=-2` (line 125) and opponent teams get `last_turn=-1` (lines 130). Since the game starts at `turn=0`, the user who created the game (with the lower `last_turn`) gets the first move according to the `is_team_next` logic (min of [-2, -1, ...]).",
+      "id": "create-game-initial-turns"
+    },
+    {
+      "type": "highlight",
+      "file": "games/views.py",
+      "highlight": [
+        {
+          "start": 241,
+          "end": 244
+        },
+        {
+          "start": 247,
+          "end": 251
+        }
+      ],
+      "title": "End Game: Checking Win/Loss Conditions",
+      "description": "After processing a shot and updating turns in `AttackView`, the game checks if the defending team has been eliminated (`alive = False`, lines 241–244) and subsequently if there is only one team left alive, declaring them the winner (`winner = True`, lines 247-251).",
+      "id": "win-loss-check"
+    },
+    {
+      "type": "textOnly",
+      "title": "Turn Logic Summary",
+      "description": "In summary:\n*   Game starts at `turn = 0`.\n*   Teams have `last_turn` values indicating when they last played (initialized at creation).\n*   `is_team_next` identifies the active player as the `alive` team with the minimum `last_turn`.\n*   Views use `is_team_next` to display game state and validate actions.\n*   Upon a valid action (attack), the player's `last_turn` is set to the current `game.turn`, and `game.turn` is incremented.\n*   Win/loss conditions (`alive`, `winner`) are checked after actions.",
+      "id": "turn-logic-summary"
+    }
+  ]
+}
