@@ -39,7 +39,7 @@
     },
     {
       "type": "CodeSnippetFrame",
-      "narration": "In util.py, the -is team next function works in three quick steps: (1) collect teams that are still alive, (2) pick the one whose last_turn is earliest, and (3) return True if that team matches the one we’re checking.",
+      "narration": "In util.py, the is team next function works in three quick steps: (1) collect teams that are still alive, (2) pick the one whose last_turn is earliest, and (3) return True if that team matches the one we’re checking.",
       "path": "games/util.py",
       "original_file_start_line": 16,
       "original_file_end_line": 19,
