@@ -1,0 +1,153 @@
+{
+  "type": "AutoplayTourResolved",
+  "frames": [
+    {
+      "type": "NarrationFrame",
+      "narration": "Welcome to this turn-logic tour! Turn order is driven by two fields— the global Game.turn counter and each team's last_turn. Only teams that are alive can act, and the one with the lowest last_turn value moves next.",
+      "text_content": "### Turn Logic\n\n- **Game.turn** – global counter\n- **Team.last_turn** – per-team timestamp\n- Team with the smallest **last_turn** moves next"
+    },
+    {
+      "type": "NarrationFrame",
+      "narration": "Now, to understand the data model underlying turn tracking, let's open the game model file. You'll see it in the editor shortly.",
+      "text_content": ""
+    },
+    {
+      "type": "FileFrame",
+      "narration": "Here we inspect the models that store turn information. Notice the global turn counter on the Game model and the individual last turn tracker on the Team model.",
+      "path": "games/models.py",
+      "content": "from django.db import models\n\nfrom players.models import Player\n\nGAME_SIZE = 10\nMAX_PLAYERS = 4\n\n\nclass Game(models.Model):\n    \"\"\"Model containing information on a single game of Battleships.\"\"\"\n    turn = models.IntegerField(default=0)\n\n    def __str__(self):\n        result = '{} -'.format(self.id)\n        for team in self.teams.all():\n            result += ' {}'.format(\n                team.player.user.username\n            )\n        return result\n\n\nclass Team(models.Model):\n    \"\"\"Model containing Player information specific to a single Game.\"\"\"\n    player = models.ForeignKey(Player, related_name='teams')\n    game = models.ForeignKey(Game, related_name='teams')\n    last_turn = models.IntegerField(default=0)\n\n    winner = models.BooleanField(default=False)\n    alive = models.BooleanField(default=True)\n\n    def __str__(self):\n        return 'Game {} - {} (last_turn={})'.format(\n            self.game.id,\n            self.player.user.username,\n            self.last_turn\n        )\n\n\nclass Shot(models.Model):\n    \"\"\"Model containing information of an attack.\"\"\"\n    game = models.ForeignKey(Game, related_name='shots')\n    attacking_team = models.ForeignKey(Team, related_name='attacking_shots')\n    defending_team = models.ForeignKey(Team, related_name='defending_shots')\n\n    x = models.IntegerField()\n    y = models.IntegerField()\n\n    def __str__(self):\n        return 'Game {game_id} - '\\\n            '{attacking_team} attacked {defending_team} ({x}, {y})'.format(\n                game_id=self.game.id,\n                attacking_team=self.attacking_team.player.user.username,\n                defending_team=self.defending_team.player.user.username,\n                x=self.x,\n                y=self.y\n            )\n\n\nclass Ship(models.Model):\n    \"\"\"Model containing information of a single ship on the game board.\"\"\"\n    LENGTHS = [2, 3, 3, 4, 5]\n\n    team = models.ForeignKey(Team, related_name='ships')\n\n    x = models.IntegerField()\n    y = models.IntegerField()\n\n    length = models.IntegerField()\n\n    CARDINAL_DIRECTIONS = {\n        'NORTH': 0,\n        'SOUTH': 1,\n        'EAST': 2,\n        'WEST': 3\n    }\n\n    DIRECTION_CHOICES = (\n        (CARDINAL_DIRECTIONS['NORTH'], 'North'),\n        (CARDINAL_DIRECTIONS['SOUTH'], 'South'),\n        (CARDINAL_DIRECTIONS['EAST'], 'East'),\n        (CARDINAL_DIRECTIONS['WEST'], 'West'),\n    )\n\n    direction = models.IntegerField(choices=DIRECTION_CHOICES)\n\n    def __str__(self):\n        return 'Game {game_id} - {team}\\'s {length}L '\\\n            'at ({x}, {y}) facing {direction}'.format(\n                game_id=self.team.game.id,\n                team=self.team.player.user.username,\n                length=self.length,\n                x=self.x,\n                y=self.y,\n                direction=self.DIRECTION_CHOICES[self.direction][1]\n            )\n\n    def get_tiles(self):\n        \"\"\"Returns a list of all tiles occupied by a ship.\"\"\"\n        tiles = []\n        for i in range(0, self.length):\n            if self.direction == Ship.CARDINAL_DIRECTIONS['NORTH']:\n                tiles.append((self.x, self.y - i))\n            elif self.direction == Ship.CARDINAL_DIRECTIONS['SOUTH']:\n                tiles.append((self.x, self.y + i))\n            elif self.direction == Ship.CARDINAL_DIRECTIONS['EAST']:\n                tiles.append((self.x + i, self.y))\n            elif self.direction == Ship.CARDINAL_DIRECTIONS['WEST']:\n                tiles.append((self.x - i, self.y))\n        return tiles\n",
+      "content_with_line_numbers": "   1: from django.db import models\n   2: \n   3: from players.models import Player\n   4: \n   5: GAME_SIZE = 10\n   6: MAX_PLAYERS = 4\n   7: \n   8: \n   9: class Game(models.Model):\n  10:     \"\"\"Model containing information on a single game of Battleships.\"\"\"\n  11:     turn = models.IntegerField(default=0)\n  12: \n  13:     def __str__(self):\n  14:         result = '{} -'.format(self.id)\n  15:         for team in self.teams.all():\n  16:             result += ' {}'.format(\n  17:                 team.player.user.username\n  18:             )\n  19:         return result\n  20: \n  21: \n  22: class Team(models.Model):\n  23:     \"\"\"Model containing Player information specific to a single Game.\"\"\"\n  24:     player = models.ForeignKey(Player, related_name='teams')\n  25:     game = models.ForeignKey(Game, related_name='teams')\n  26:     last_turn = models.IntegerField(default=0)\n  27: \n  28:     winner = models.BooleanField(default=False)\n  29:     alive = models.BooleanField(default=True)\n  30: \n  31:     def __str__(self):\n  32:         return 'Game {} - {} (last_turn={})'.format(\n  33:             self.game.id,\n  34:             self.player.user.username,\n  35:             self.last_turn\n  36:         )\n  37: \n  38: \n  39: class Shot(models.Model):\n  40:     \"\"\"Model containing information of an attack.\"\"\"\n  41:     game = models.ForeignKey(Game, related_name='shots')\n  42:     attacking_team = models.ForeignKey(Team, related_name='attacking_shots')\n  43:     defending_team = models.ForeignKey(Team, related_name='defending_shots')\n  44: \n  45:     x = models.IntegerField()\n  46:     y = models.IntegerField()\n  47: \n  48:     def __str__(self):\n  49:         return 'Game {game_id} - '\\\n  50:             '{attacking_team} attacked {defending_team} ({x}, {y})'.format(\n  51:                 game_id=self.game.id,\n  52:                 attacking_team=self.attacking_team.player.user.username,\n  53:                 defending_team=self.defending_team.player.user.username,\n  54:                 x=self.x,\n  55:                 y=self.y\n  56:             )\n  57: \n  58: \n  59: class Ship(models.Model):\n  60:     \"\"\"Model containing information of a single ship on the game board.\"\"\"\n  61:     LENGTHS = [2, 3, 3, 4, 5]\n  62: \n  63:     team = models.ForeignKey(Team, related_name='ships')\n  64: \n  65:     x = models.IntegerField()\n  66:     y = models.IntegerField()\n  67: \n  68:     length = models.IntegerField()\n  69: \n  70:     CARDINAL_DIRECTIONS = {\n  71:         'NORTH': 0,\n  72:         'SOUTH': 1,\n  73:         'EAST': 2,\n  74:         'WEST': 3\n  75:     }\n  76: \n  77:     DIRECTION_CHOICES = (\n  78:         (CARDINAL_DIRECTIONS['NORTH'], 'North'),\n  79:         (CARDINAL_DIRECTIONS['SOUTH'], 'South'),\n  80:         (CARDINAL_DIRECTIONS['EAST'], 'East'),\n  81:         (CARDINAL_DIRECTIONS['WEST'], 'West'),\n  82:     )\n  83: \n  84:     direction = models.IntegerField(choices=DIRECTION_CHOICES)\n  85: \n  86:     def __str__(self):\n  87:         return 'Game {game_id} - {team}\\'s {length}L '\\\n  88:             'at ({x}, {y}) facing {direction}'.format(\n  89:                 game_id=self.team.game.id,\n  90:                 team=self.team.player.user.username,\n  91:                 length=self.length,\n  92:                 x=self.x,\n  93:                 y=self.y,\n  94:                 direction=self.DIRECTION_CHOICES[self.direction][1]\n  95:             )\n  96: \n  97:     def get_tiles(self):\n  98:         \"\"\"Returns a list of all tiles occupied by a ship.\"\"\"\n  99:         tiles = []\n 100:         for i in range(0, self.length):\n 101:             if self.direction == Ship.CARDINAL_DIRECTIONS['NORTH']:\n 102:                 tiles.append((self.x, self.y - i))\n 103:             elif self.direction == Ship.CARDINAL_DIRECTIONS['SOUTH']:\n 104:                 tiles.append((self.x, self.y + i))\n 105:             elif self.direction == Ship.CARDINAL_DIRECTIONS['EAST']:\n 106:                 tiles.append((self.x + i, self.y))\n 107:             elif self.direction == Ship.CARDINAL_DIRECTIONS['WEST']:\n 108:                 tiles.append((self.x - i, self.y))\n 109:         return tiles",
+      "actions": [
+        {
+          "type": "HighlightLines",
+          "start_line": 11,
+          "end_line": 11,
+          "narration_cue": "game turn field"
+        },
+        {
+          "type": "HighlightLines",
+          "start_line": 26,
+          "end_line": 26,
+          "narration_cue": "team last turn field"
+        }
+      ]
+    },
+    {
+      "type": "NarrationFrame",
+      "narration": "Next, let's open util.py to see how the game decides whose turn is next.",
+      "text_content": ""
+    },
+    {
+      "type": "CodeSnippetFrame",
+      "narration": "In util.py, the -is team next function works in three quick steps: (1) collect teams that are still alive, (2) pick the one whose last_turn is earliest, and (3) return True if that team matches the one we’re checking.",
+      "path": "games/util.py",
+      "original_file_start_line": 16,
+      "original_file_end_line": 19,
+      "snippet_content": "def is_team_next(team, game):\n    \"\"\"Checks if it is a team's turn to move next.\"\"\"\n    alive_teams = game.teams.filter(alive=True)\n    return (team == min(alive_teams, key=lambda team: team.last_turn))\n",
+      "snippet_content_with_line_numbers": "  16: def is_team_next(team, game):\n  17:     \"\"\"Checks if it is a team's turn to move next.\"\"\"\n  18:     alive_teams = game.teams.filter(alive=True)\n  19:     return (team == min(alive_teams, key=lambda team: team.last_turn))\n  20: ",
+      "actions": [
+        {
+          "type": "HighlightLinesInSnippet",
+          "start_line": 18,
+          "end_line": 18,
+          "narration_cue": "filter surviving teams"
+        },
+        {
+          "type": "HighlightLinesInSnippet",
+          "start_line": 19,
+          "end_line": 19,
+          "narration_cue": "pick earliest last_turn & compare"
+        }
+      ]
+    },
+    {
+      "type": "NarrationFrame",
+      "narration": "Now, to see how this check is enforced before an attack, let's open views.py's AttackView.",
+      "text_content": ""
+    },
+    {
+      "type": "CodeSnippetFrame",
+      "narration": "Inside AttackView, before processing an attack, the code calls is team next to verify it's the player's turn, and blocks the action if it's not.",
+      "path": "games/views.py",
+      "original_file_start_line": 177,
+      "original_file_end_line": 181,
+      "snippet_content": "            # Verify it is the player's turn to attack\n            is_next = is_team_next(player_team, game)\n            if not is_next:\n                messages.error(request, 'It\\'s not your turn!')\n                return HttpResponseRedirect(reverse('game', args=[game_id]))\n\n            other_teams = []",
+      "snippet_content_with_line_numbers": " 177:             # Verify it is the player's turn to attack\n 178:             is_next = is_team_next(player_team, game)\n 179:             if not is_next:\n 180:                 messages.error(request, 'It\\'s not your turn!')\n 181:                 return HttpResponseRedirect(reverse('game', args=[game_id]))\n 182: \n 183:             other_teams = []",
+      "actions": [
+        {
+          "type": "HighlightLinesInSnippet",
+          "start_line": 178,
+          "end_line": 178,
+          "narration_cue": "call is team next"
+        },
+        {
+          "type": "HighlightLinesInSnippet",
+          "start_line": 179,
+          "end_line": 179,
+          "narration_cue": "block action if not your turn"
+        }
+      ]
+    },
+    {
+      "type": "NarrationFrame",
+      "narration": "Now, let's scroll down to where the turn values are updated after a successful shot.",
+      "text_content": ""
+    },
+    {
+      "type": "CodeSnippetFrame",
+      "narration": "After saving the shot, the code sets the team's last turn to the current global turn, then increments and saves the global turn counter for the next move.",
+      "path": "games/views.py",
+      "original_file_start_line": 218,
+      "original_file_end_line": 218,
+      "snippet_content": "\n                player_team.last_turn = game.turn\n                player_team.save()\n\n                game.turn = game.turn + 1\n                game.save()",
+      "snippet_content_with_line_numbers": " 219: \n 220:                 player_team.last_turn = game.turn\n 221:                 player_team.save()\n 222: \n 223:                 game.turn = game.turn + 1\n 224:                 game.save()",
+      "actions": [
+        {
+          "type": "HighlightLinesInSnippet",
+          "start_line": 220,
+          "end_line": 220,
+          "narration_cue": "update last turn"
+        },
+        {
+          "type": "HighlightLinesInSnippet",
+          "start_line": 223,
+          "end_line": 223,
+          "narration_cue": "increment game turn"
+        }
+      ]
+    },
+    {
+      "type": "NarrationFrame",
+      "narration": "Finally, let's see how initial turn values are set when a new game is created.",
+      "text_content": ""
+    },
+    {
+      "type": "CodeSnippetFrame",
+      "narration": "In CreateGameView, each team's initial last turn is assigned: the user's team gets -minus 2 and each opponent gets -minus 1, ensuring the correct starting order when play begins.",
+      "path": "games/views.py",
+      "original_file_start_line": 123,
+      "original_file_end_line": 131,
+      "snippet_content": "                game = Game()\n                game.save()\n                user_team = Team(player=user_player, game=game, last_turn=-2)\n                opponent_teams = [\n                    Team(\n                        player=opponent_player,\n                        game=game,\n                        last_turn=-1\n                    )",
+      "snippet_content_with_line_numbers": " 123:                 game = Game()\n 124:                 game.save()\n 125:                 user_team = Team(player=user_player, game=game, last_turn=-2)\n 126:                 opponent_teams = [\n 127:                     Team(\n 128:                         player=opponent_player,\n 129:                         game=game,\n 130:                         last_turn=-1\n 131:                     )",
+      "actions": [
+        {
+          "type": "HighlightLinesInSnippet",
+          "start_line": 125,
+          "end_line": 125,
+          "narration_cue": "user team's initial last turn"
+        },
+        {
+          "type": "HighlightLinesInSnippet",
+          "start_line": 130,
+          "end_line": 130,
+          "narration_cue": "opponents' initial last turn"
+        }
+      ]
+    },
+    {
+      "type": "NarrationFrame",
+      "narration": "In summary, turn management uses a global turn counter on Game and per-team last turn trackers. The next team is chosen as the alive team with the smallest last turn, and after each move both the team's last turn and the global turn are updated. Initial values are seeded so play starts in the correct order. <break time=\"1.0s\"/> You now have a complete picture of turn logic under the hood.",
+      "text_content": "### Turn Logic Recap\n\n- `Game.turn`: global counter\n- `Team.last_turn`: per-team timestamp\n- Next mover = alive team with smallest `last_turn`\n- Post-move: update both counters\n- Seeded values give correct first turn"
+    }
+  ]
+}
