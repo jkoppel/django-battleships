@@ -31,9 +31,11 @@ class AttackForm(forms.Form):
     )
     target_x = forms.ChoiceField(choices=X_CHOICES)
     target_y = forms.ChoiceField(choices=Y_CHOICES)
+    bombs_away = forms.BooleanField(required=False, label='Bomb (3x3)')
 
     def __init__(self, *args, **kwargs):
         other_teams = kwargs.pop('other_teams')
+        bombs_remaining = kwargs.pop('bombs_remaining', None)
         super(AttackForm, self).__init__(*args, **kwargs)
         self.fields['target_x'].widget.attrs = {
             'class': 'form-control col-md-1'
@@ -50,3 +52,10 @@ class AttackForm(forms.Form):
         self.fields['target_team'].widget.attrs = {
             'class': 'form-control'
         }
+        # Show bombs remaining as help text; disable when none left (cosmetic)
+        if bombs_remaining is not None:
+            self.fields['bombs_away'].help_text = 'Bombs left: {}'.format(bombs_remaining)
+            if bombs_remaining == 0:
+                attrs = self.fields['bombs_away'].widget.attrs or {}
+                attrs.update({'disabled': 'disabled'})
+                self.fields['bombs_away'].widget.attrs = attrs

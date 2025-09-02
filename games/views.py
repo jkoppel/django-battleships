@@ -13,6 +13,7 @@ from games.models import MAX_PLAYERS
 from games.models import Ship
 from games.models import Shot
 from games.models import Team
+from games.models import GAME_SIZE
 from games.presentation import TeamPresenter
 from games.util import is_team_next
 from games.util import make_ships
@@ -58,7 +59,7 @@ class GameView(View):
                 'game_id': game_id,
                 'player_team': TeamPresenter.from_team(player_team, game),
                 'teams': team_presenters,
-                'attack_form': AttackForm(other_teams=other_teams),
+                'attack_form': AttackForm(other_teams=other_teams, bombs_remaining=(2 - player_team.bombs_used)),
                 'is_player_next': is_player_next
             }
             return render(request, self.template_name, context)
@@ -185,37 +186,73 @@ class AttackView(View):
                 if team is not player_team and team.alive:
                     other_teams.append(team)
 
-            attack_form = AttackForm(request.POST, other_teams=other_teams)
+            attack_form = AttackForm(request.POST, other_teams=other_teams, bombs_remaining=(2 - player_team.bombs_used))
             if attack_form.is_valid():
                 target_x = attack_form.cleaned_data['target_x']
                 target_y = attack_form.cleaned_data['target_y']
                 target_team = attack_form.cleaned_data['target_team']
+                bombs_away = attack_form.cleaned_data.get('bombs_away', False)
 
                 other_team = Team.objects.get(pk=target_team)
 
-                # Verify shot hasn't already been attempted
-                past_shots = Shot.objects.filter(
-                    game=game,
-                    attacking_team=player_team,
-                    defending_team=other_team,
-                    x=target_x,
-                    y=target_y
-                )
-
-                if len(past_shots) > 0:
-                    messages.error(request, 'You\'ve already shot there!')
-                    return HttpResponseRedirect(
-                        reverse('game', args=[game_id])
+                # Handle bomb vs normal shot
+                if bombs_away:
+                    bombs_remaining = 2 - player_team.bombs_used
+                    if bombs_remaining <= 0:
+                        messages.error(request, 'No bombs remaining!')
+                        return HttpResponseRedirect(reverse('game', args=[game_id]))
+                    center_x = int(target_x)
+                    center_y = int(target_y)
+                    coords = []
+                    for dx in [-1, 0, 1]:
+                        for dy in [-1, 0, 1]:
+                            x = center_x + dx
+                            y = center_y + dy
+                            if 0 <= x < GAME_SIZE and 0 <= y < GAME_SIZE:
+                                coords.append((x, y))
+                    past_shots = Shot.objects.filter(
+                        game=game,
+                        attacking_team=player_team,
+                        defending_team=other_team
                     )
-
-                shot = Shot(
-                    game=game,
-                    attacking_team=player_team,
-                    defending_team=other_team,
-                    x=target_x,
-                    y=target_y
-                )
-                shot.save()
+                    past_set = set((s.x, s.y) for s in past_shots)
+                    new_coords = [(x, y) for (x, y) in coords if (x, y) not in past_set]
+                    if len(new_coords) == 0:
+                        messages.error(request, 'You\'ve already shot all tiles in that 3x3 area!')
+                        return HttpResponseRedirect(reverse('game', args=[game_id]))
+                    for (x, y) in new_coords:
+                        shot = Shot(
+                            game=game,
+                            attacking_team=player_team,
+                            defending_team=other_team,
+                            x=x,
+                            y=y
+                        )
+                        shot.save()
+                    player_team.bombs_used = player_team.bombs_used + 1
+                    player_team.save()
+                    current_shot_tiles = new_coords
+                else:
+                    # Verify shot hasn't already been attempted
+                    past_shots = Shot.objects.filter(
+                        game=game,
+                        attacking_team=player_team,
+                        defending_team=other_team,
+                        x=target_x,
+                        y=target_y
+                    )
+                    if len(past_shots) > 0:
+                        messages.error(request, 'You\'ve already shot there!')
+                        return HttpResponseRedirect(reverse('game', args=[game_id]))
+                    shot = Shot(
+                        game=game,
+                        attacking_team=player_team,
+                        defending_team=other_team,
+                        x=target_x,
+                        y=target_y
+                    )
+                    shot.save()
+                    current_shot_tiles = [(int(target_x), int(target_y))]
 
                 player_team.last_turn = game.turn
                 player_team.save()
@@ -227,7 +264,7 @@ class AttackView(View):
                 ship_tiles = set()
                 for ship in other_team.ships.all():
                     ship_tiles.update(set(ship.get_tiles()))
-                other_team_hit = (int(target_x), int(target_y)) in ship_tiles
+                other_team_hit = any(tile in ship_tiles for tile in current_shot_tiles)
 
                 # Check for death
                 past_shot_tiles = set([

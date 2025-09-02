@@ -27,6 +27,7 @@ class Team(models.Model):
 
     winner = models.BooleanField(default=False)
     alive = models.BooleanField(default=True)
+    bombs_used = models.IntegerField(default=0)
 
     def __str__(self):
         return 'Game {} - {} (last_turn={})'.format(

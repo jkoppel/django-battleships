@@ -10,5 +10,11 @@
     <div class="form-group">
         {{ attack_form.target_y }}
     </div>
+    <div class="checkbox">
+        <label for="{{ attack_form.bombs_away.id_for_label }}">
+            {{ attack_form.bombs_away }} {{ attack_form.bombs_away.label }}
+        </label>
+        {% if attack_form.bombs_away.help_text %}<span class="help-block">{{ attack_form.bombs_away.help_text }}</span>{% endif %}
+    </div>
     <input id="attack-form-submit" class="btn btn-default" type="submit" value="Shoot!">
 </form>
