@@ -1,0 +1,75 @@
+{% extends 'base/base.html' %}
+
+{% block content %}
+<div class="admin-panel">
+    <h2>User Management</h2>
+    <p class="text-muted">Manage users and assign admin privileges</p>
+
+    <div class="table-responsive">
+        <table class="table table-striped table-bordered">
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Date Joined</th>
+                    <th>Admin Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for data in user_data %}
+                <tr>
+                    <td>
+                        <strong>{{ data.user.username }}</strong>
+                        {% if data.user.id == request.user.id %}
+                            <span class="label label-info">You</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ data.user.email|default:"N/A" }}</td>
+                    <td>{{ data.user.date_joined|date:"M d, Y" }}</td>
+                    <td>
+                        {% if data.is_admin %}
+                            <span class="label label-success">Admin</span>
+                        {% else %}
+                            <span class="label label-default">User</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if data.user.id != request.user.id %}
+                            <form method="post" style="display: inline;">
+                                {% csrf_token %}
+                                <input type="hidden" name="user_id" value="{{ data.user.id }}">
+                                <button type="submit" name="toggle_admin" class="btn btn-sm btn-primary">
+                                    {% if data.is_admin %}
+                                        Remove Admin
+                                    {% else %}
+                                        Make Admin
+                                    {% endif %}
+                                </button>
+                            </form>
+                            <form method="post" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this user?');">
+                                {% csrf_token %}
+                                <input type="hidden" name="user_id" value="{{ data.user.id }}">
+                                <button type="submit" name="delete_user" class="btn btn-sm btn-danger">
+                                    Delete User
+                                </button>
+                            </form>
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center">No users found</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="alert alert-info" role="alert">
+        <strong>Note:</strong> You cannot remove your own admin status or delete your own account from this panel.
+    </div>
+</div>
+{% endblock %}
