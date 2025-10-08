@@ -1,5 +1,6 @@
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import Http404, HttpResponseForbidden
 from django.shortcuts import render, redirect
 from django.utils.decorators import method_decorator
@@ -7,6 +8,18 @@ from django.views.generic import View
 
 from players.models import Player
 from players.presentation import PlayerPresenter
+
+
+class AdminRequiredMixin(LoginRequiredMixin):
+    """Mixin to require admin status for a view."""
+    def dispatch(self, request, *args, **kwargs):
+        try:
+            player = Player.objects.get(user=request.user)
+        except Player.DoesNotExist:
+            return HttpResponseForbidden("You do not have permission to access this page.")
+        if not player.is_admin:
+            return HttpResponseForbidden("You do not have permission to access this page.")
+        return super().dispatch(request, *args, **kwargs)
 
 
 class PlayerProfileView(View):
@@ -19,7 +32,7 @@ class PlayerProfileView(View):
         except User.DoesNotExist:
             raise Http404("Member does not exist")
 
-        player = Player.objects.get(user=user)
+        player = Player.get_for_user_or_404(user)
 
         context = {
             'player': PlayerPresenter.from_player(player),
@@ -27,35 +40,24 @@ class PlayerProfileView(View):
         return render(request, self.template_name, context)
 
 
-@method_decorator(login_required, name='dispatch')
-class AdminManageUsersView(View):
+class AdminManageUsersView(AdminRequiredMixin, View):
 
     template_name = 'players/admin_manage_users.html'
 
     def get(self, request, *args, **kwargs):
-        # Check if the current user is an admin
-        try:
-            player = Player.objects.get(user=request.user)
-            if not player.is_admin:
-                return HttpResponseForbidden("You do not have permission to access this page.")
-        except Player.DoesNotExist:
-            return HttpResponseForbidden("You do not have permission to access this page.")
+        # Get all players and map user_id -> is_admin to avoid N+1 queries
+        players_qs = Player.objects.all().only('user_id', 'is_admin')
+        player_map = {p.user_id: p.is_admin for p in players_qs}
 
-        # Get all users and their player data
+        # Get all users
         users = User.objects.all().order_by('username')
-        user_data = []
-        for user in users:
-            try:
-                player = Player.objects.get(user=user)
-                user_data.append({
-                    'user': user,
-                    'is_admin': player.is_admin,
-                })
-            except Player.DoesNotExist:
-                user_data.append({
-                    'user': user,
-                    'is_admin': False,
-                })
+        user_data = [
+            {
+                'user': user,
+                'is_admin': player_map.get(user.id, False),
+            }
+            for user in users
+        ]
 
         context = {
             'user_data': user_data,
@@ -63,14 +65,6 @@ class AdminManageUsersView(View):
         return render(request, self.template_name, context)
 
     def post(self, request, *args, **kwargs):
-        # Check if the current user is an admin
-        try:
-            player = Player.objects.get(user=request.user)
-            if not player.is_admin:
-                return HttpResponseForbidden("You do not have permission to perform this action.")
-        except Player.DoesNotExist:
-            return HttpResponseForbidden("You do not have permission to perform this action.")
-
         # Handle user deletion
         if 'delete_user' in request.POST:
             user_id = request.POST.get('user_id')
@@ -86,10 +80,12 @@ class AdminManageUsersView(View):
             user_id = request.POST.get('user_id')
             try:
                 user = User.objects.get(id=user_id)
-                player, created = Player.objects.get_or_create(user=user)
-                if user.id != request.user.id:  # Don't allow admin to remove their own admin status
-                    player.is_admin = not player.is_admin
-                    player.save()
+                # Get current player to determine new admin status
+                player = Player.objects.get(user=user)
+                new_admin_status = not player.is_admin
+
+                # Use centralized method; it will prevent self-demotion
+                Player.set_admin_for_user(user, new_admin_status, acting_user=request.user)
             except User.DoesNotExist:
                 pass
 

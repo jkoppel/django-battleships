@@ -23,6 +23,5 @@ class Command(BaseCommand):
         if player.is_admin:
             self.stdout.write(self.style.WARNING(f'User "{username}" is already an admin'))
         else:
-            player.is_admin = True
-            player.save()
+            Player.set_admin_for_user(user, True)
             self.stdout.write(self.style.SUCCESS(f'Successfully made "{username}" an admin'))
